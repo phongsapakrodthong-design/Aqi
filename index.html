@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Asoke AQI — AIQ AIR</title>
+  <meta name="description" content="Live air quality (US AQI) for Asoke, Bangkok — iOS-ready single-page web app." />
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#e11d48">
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Asoke AQI">
+
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" href="icons/icon-192.png">
+
+  <style>
+    :root{
+      --bg:#0b0c10;
+      --panel:#111217;
+      --panel2:#151725;
+      --text:#e9edf2;
+      --muted:#aab2bd;
+      --line:rgba(255,255,255,.08);
+
+      --red:#e11d48;
+      --red2:#ff2d55;
+      --grey:#9aa3ad;
+
+      --chipLine:rgba(255,255,255,.10);
+      --shadow: 0 18px 60px rgba(0,0,0,.55);
+      --shadow2: 0 10px 30px rgba(0,0,0,.35);
+
+      --radius: 18px;
+      --radius2: 14px;
+
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--text);
+      background:
+        radial-gradient(900px 600px at 14% 10%, rgba(225,29,72,.22), transparent 60%),
+        radial-gradient(900px 600px at 85% 20%, rgba(154,163,173,.14), transparent 60%),
+        radial-gradient(700px 500px at 50% 95%, rgba(255,45,85,.14), transparent 55%),
+        linear-gradient(180deg, #07070a 0%, #0b0c10 55%, #07070a 100%);
+      overflow-x:hidden;
+      padding-bottom: var(--safe-bottom);
+    }
+    a{color:inherit; text-decoration:none}
+    button{font:inherit}
+
+    .container{width:min(980px, 92vw); margin:0 auto;}
+
+    .nav{
+      position:sticky; top:0; z-index:50;
+      backdrop-filter: blur(12px);
+      background: rgba(11,12,16,.55);
+      border-bottom: 1px solid var(--line);
+      padding-top: var(--safe-top);
+    }
+    .nav-inner{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px; padding:14px 0;
+    }
+    .brand{display:flex; align-items:center; gap:10px; letter-spacing:.3px;}
+    .logo{
+      width:38px; height:38px; border-radius:12px;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,.35), transparent 55%),
+        linear-gradient(135deg, var(--red) 0%, #6d2cff 120%);
+      box-shadow: 0 12px 30px rgba(225,29,72,.25);
+      border:1px solid rgba(255,255,255,.10);
+    }
+    .brand b{font-size:15px; display:block; line-height:1.1;}
+    .brand span{display:block; font-size:12px; color:var(--muted); margin-top:2px;}
+
+    .btn{
+      padding:10px 14px; border-radius:14px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color:var(--text);
+      box-shadow: var(--shadow2);
+      cursor:pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform .12s ease, background .18s ease, border-color .18s ease;
+    }
+    .btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.05);}
+    .btn-primary{
+      border-color: rgba(225,29,72,.50);
+      background: linear-gradient(135deg, rgba(225,29,72,.95) 0%, rgba(255,45,85,.85) 55%, rgba(225,29,72,.65) 100%);
+      box-shadow: 0 18px 60px rgba(225,29,72,.25);
+    }
+
+    /* Emoji code-color box */
+    .emoji{
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:4px 8px; border-radius: 10px;
+      border:1px solid var(--chipLine);
+      background: linear-gradient(180deg, rgba(27,31,43,.92), rgba(17,18,23,.72));
+      color: var(--red2);
+      font-weight:700;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      box-shadow: 0 10px 26px rgba(0,0,0,.35);
+    }
+    .emoji.grey{color: var(--grey);}
+
+    main{padding:18px 0 26px;}
+    .grid{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:12px;
+      align-items:stretch;
+    }
+    @media (max-width: 900px){ .grid{grid-template-columns:1fr;} }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:16px;
+    }
+
+    .title-row{
+      display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+      margin-bottom:10px;
+    }
+    h1{margin:0; font-size: clamp(22px, 3.4vw, 34px); letter-spacing:-.3px; line-height:1.1;}
+    .subtitle{margin-top:6px; color:var(--muted); font-size:13px; line-height:1.6;}
+
+    .aqi-wrap{display:flex; flex-direction:column; gap:10px;}
+    .aqi-main{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding:14px;
+      border-radius: var(--radius2);
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+    }
+    .aqi-number{font-size:44px; font-weight:800; letter-spacing:-1px; line-height:1;}
+    .aqi-label{font-size:14px; font-weight:700; margin-bottom:4px;}
+    .aqi-desc{font-size:13px; color:var(--muted); line-height:1.45;}
+
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px;
+      border-radius: 999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      color:var(--muted);
+      font-size:12px;
+      white-space:nowrap;
+    }
+
+    .bar{
+      height:12px;
+      border-radius:999px;
+      background: rgba(255,255,255,.08);
+      border:1px solid var(--line);
+      overflow:hidden;
+      position:relative;
+    }
+    .bar > .fill{
+      height:100%;
+      width:0%;
+      border-radius:999px;
+      transition: width .6s ease;
+      background: linear-gradient(90deg, #22c55e, #eab308, #f97316, #ef4444, #a855f7, #7f1d1d);
+    }
+    .needle{
+      position:absolute; top:-4px;
+      width:2px; height:20px;
+      background: rgba(233,237,242,.9);
+      border-radius:2px;
+      left:0%;
+      transform: translateX(-1px);
+      transition: left .6s ease;
+      box-shadow: 0 6px 14px rgba(0,0,0,.5);
+    }
+    .bar-legend{
+      display:flex; justify-content:space-between;
+      font-size:11px; color:rgba(170,178,189,.85);
+      margin-top:8px;
+    }
+
+    .stats{
+      display:grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap:10px;
+      margin-top:10px;
+    }
+    @media (max-width: 520px){ .stats{grid-template-columns:1fr;} }
+    .stat{
+      padding:12px;
+      border-radius: var(--radius2);
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+    }
+    .stat .k{font-size:12px; color:var(--muted); margin-bottom:6px;}
+    .stat .v{font-size:14px; font-weight:700;}
+    .unit{font-weight:600; color:rgba(170,178,189,.85); font-size:12px;}
+
+    .list{display:grid; gap:8px; margin-top:10px;}
+    .row{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+    }
+    .row .t{font-size:12px; color:var(--muted);}
+    .row .val{font-size:13px; font-weight:700;}
+    .dot{
+      width:10px; height:10px; border-radius:999px;
+      background:#9aa3ad;
+      box-shadow: 0 10px 18px rgba(0,0,0,.35);
+      flex:0 0 auto;
+    }
+
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom: calc(16px + var(--safe-bottom));
+      transform: translateX(-50%);
+      padding:10px 12px;
+      border-radius: 999px;
+      border:1px solid var(--line);
+      background: rgba(17,18,23,.85);
+      backdrop-filter: blur(10px);
+      color:var(--text);
+      font-size:12px;
+      box-shadow: var(--shadow2);
+      display:none;
+      max-width: 92vw;
+    }
+
+    .foot{
+      margin-top:12px;
+      color:rgba(170,178,189,.85);
+      font-size:12px;
+      line-height:1.5;
+    }
+    code{
+      padding:2px 6px; border-radius:10px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color: rgba(233,237,242,.92);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="nav">
+    <div class="container">
+      <div class="nav-inner">
+        <a class="brand" href="#top" aria-label="Asoke AQI Home">
+          <div class="logo" aria-hidden="true"></div>
+          <div>
+            <b>Asoke AQI</b>
+            <span>Bangkok, Thailand • iOS-ready</span>
+          </div>
+        </a>
+
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button class="btn" id="copyBtn" type="button"><span class="emoji grey">⧉</span> Copy coords</button>
+          <button class="btn btn-primary" id="refreshBtn" type="button"><span class="emoji">↻</span> Refresh</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main id="top" class="container">
+    <div class="grid">
+      <section class="card">
+        <div class="title-row">
+          <div>
+            <div class="badge"><span class="emoji">📍</span> Asoke BTS area</div>
+            <h1>Live Air Quality</h1>
+            <div class="subtitle">
+              Uses <b>US AQI</b> model output from Open‑Meteo Air Quality API.
+              Location fixed at <code>13.7356</code>, <code>100.5562</code>.
+            </div>
+          </div>
+          <div class="badge" id="updatedBadge"><span class="emoji grey">⏱</span> Updating…</div>
+        </div>
+
+        <div class="aqi-wrap">
+          <div class="aqi-main">
+            <div>
+              <div class="aqi-label"><span class="emoji">🧪</span> US AQI</div>
+              <div class="aqi-number" id="aqiNumber">—</div>
+              <div class="aqi-desc" id="aqiText">Loading…</div>
+            </div>
+
+            <div style="text-align:right;">
+              <div class="badge" id="aqiCategory"><span class="emoji grey">●</span> —</div>
+              <div class="subtitle" style="margin-top:8px;">
+                Dominant pollutants shown below
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="bar" aria-label="AQI scale">
+              <div class="fill" id="barFill"></div>
+              <div class="needle" id="needle"></div>
+            </div>
+            <div class="bar-legend">
+              <span>0</span><span>50</span><span>100</span><span>150</span><span>200</span><span>300</span><span>500</span>
+            </div>
+          </div>
+
+          <div class="stats">
+            <div class="stat">
+              <div class="k"><span class="emoji grey">🫧</span> PM2.5</div>
+              <div class="v"><span id="pm25">—</span> <span class="unit">μg/m³</span></div>
+            </div>
+            <div class="stat">
+              <div class="k"><span class="emoji grey">🌫</span> PM10</div>
+              <div class="v"><span id="pm10">—</span> <span class="unit">μg/m³</span></div>
+            </div>
+          </div>
+
+          <div class="foot">
+            Tip: On iPhone Safari → Share <span class="emoji grey">⤴</span> → <b>Add to Home Screen</b>.
+          </div>
+        </div>
+      </section>
+
+      <aside class="card">
+        <div class="title-row">
+          <div>
+            <div class="badge"><span class="emoji">🕒</span> Next 12 hours</div>
+            <h1 style="font-size:22px;">Forecast</h1>
+            <div class="subtitle">Quick trend from model hourly values.</div>
+          </div>
+          <div class="badge"><span class="emoji grey">📶</span> Auto</div>
+        </div>
+
+        <div class="list" id="forecastList"></div>
+
+        <div class="foot">
+          Data source: Open‑Meteo Air Quality API. If you open this from <code>file://</code> it may block API calls.
+          Best: host on HTTPS (GitHub Pages/Netlify) so iOS can fetch + cache.
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  const LAT = 13.7356;
+  const LON = 100.5562;
+
+  const els = {
+    aqiNumber: document.getElementById('aqiNumber'),
+    aqiText: document.getElementById('aqiText'),
+    aqiCategory: document.getElementById('aqiCategory'),
+    updatedBadge: document.getElementById('updatedBadge'),
+    pm25: document.getElementById('pm25'),
+    pm10: document.getElementById('pm10'),
+    forecastList: document.getElementById('forecastList'),
+    barFill: document.getElementById('barFill'),
+    needle: document.getElementById('needle'),
+    toast: document.getElementById('toast'),
+  };
+
+  function toast(msg){
+    els.toast.textContent = msg;
+    els.toast.style.display = 'block';
+    clearTimeout(window.__t);
+    window.__t = setTimeout(()=>els.toast.style.display='none', 1400);
+  }
+
+  function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+  function aqiCategory(aqi){
+    if (aqi <= 50) return {name:"Good", dot:"#22c55e", advice:"Enjoy outdoor activities."};
+    if (aqi <= 100) return {name:"Moderate", dot:"#eab308", advice:"Sensitive people may consider reducing prolonged outdoor exertion."};
+    if (aqi <= 150) return {name:"Unhealthy for Sensitive Groups", dot:"#f97316", advice:"Sensitive groups should reduce prolonged/heavy exertion outdoors."};
+    if (aqi <= 200) return {name:"Unhealthy", dot:"#ef4444", advice:"Reduce prolonged/heavy outdoor exertion. Consider mask/indoor time."};
+    if (aqi <= 300) return {name:"Very Unhealthy", dot:"#a855f7", advice:"Avoid prolonged outdoor exertion. Stay indoors if possible."};
+    return {name:"Hazardous", dot:"#7f1d1d", advice:"Stay indoors. Avoid outdoor activity."};
+  }
+
+  function setAqiUI(aqi){
+    const c = aqiCategory(aqi);
+    els.aqiNumber.textContent = Math.round(aqi);
+    els.aqiText.textContent = c.advice;
+    els.aqiCategory.innerHTML = `<span class="emoji grey">●</span> ${c.name}`;
+    const pct = clamp((aqi/500)*100, 0, 100);
+    els.barFill.style.width = pct + '%';
+    els.needle.style.left = pct + '%';
+    els.aqiNumber.style.color = c.dot;
+  }
+
+  function timeShort(iso){
+    const d = new Date(iso);
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mm = String(d.getMinutes()).padStart(2,'0');
+    return `${hh}:${mm}`;
+  }
+
+  async function loadAQI(){
+    els.updatedBadge.innerHTML = `<span class="emoji grey">⏱</span> Updating…`;
+    const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${LAT}&longitude=${LON}&current=us_aqi,pm2_5,pm10&hourly=us_aqi,pm2_5,pm10&timezone=Asia%2FBangkok&forecast_days=2`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if(!res.ok) throw new Error('Network error');
+    const data = await res.json();
+
+    const cur = data.current || {};
+    const aqi = cur.us_aqi;
+    const pm25 = cur.pm2_5;
+    const pm10 = cur.pm10;
+
+    if (typeof aqi === 'number') setAqiUI(aqi);
+    els.pm25.textContent = (typeof pm25 === 'number') ? pm25.toFixed(1) : '—';
+    els.pm10.textContent = (typeof pm10 === 'number') ? pm10.toFixed(1) : '—';
+
+    const t = data.hourly?.time || [];
+    const a = data.hourly?.us_aqi || [];
+    els.forecastList.innerHTML = "";
+
+    const nowIso = cur.time;
+    let startIdx = 0;
+    if (nowIso && t.length){
+      startIdx = t.indexOf(nowIso);
+      if (startIdx < 0){
+        const now = new Date(nowIso).getTime();
+        let best = 0, bestDiff = Infinity;
+        for (let i=0;i<t.length;i++){
+          const diff = Math.abs(new Date(t[i]).getTime() - now);
+          if (diff < bestDiff){ bestDiff = diff; best = i; }
+        }
+        startIdx = best;
+      }
+    }
+
+    const endIdx = Math.min(startIdx + 12, t.length);
+    for (let i=startIdx;i<endIdx;i++){
+      const aqiH = a[i];
+      const dot = aqiCategory(aqiH).dot;
+
+      const div = document.createElement('div');
+      div.className = 'row';
+      div.innerHTML = `
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="dot" style="background:${dot}"></span>
+          <div>
+            <div class="t">${timeShort(t[i])}</div>
+            <div class="val">AQI ${Math.round(aqiH)}</div>
+          </div>
+        </div>
+        <div class="badge"><span class="emoji grey">🌫</span> ${aqiCategory(aqiH).name}</div>
+      `;
+      els.forecastList.appendChild(div);
+    }
+
+    const updated = cur.time ? cur.time.replace('T', ' ') : 'now';
+    els.updatedBadge.innerHTML = `<span class="emoji grey">⏱</span> Updated ${updated}`;
+  }
+
+  async function safeLoad(){
+    try{
+      await loadAQI();
+      toast("Updated");
+    }catch(e){
+      els.aqiText.textContent = "Couldn’t load data. If you're opening from a file, host it on HTTPS so iOS can fetch.";
+      els.updatedBadge.innerHTML = `<span class="emoji grey">⚠</span> Offline`;
+      toast("Load failed");
+      console.error(e);
+    }
+  }
+
+  document.getElementById('refreshBtn').addEventListener('click', safeLoad);
+  document.getElementById('copyBtn').addEventListener('click', async () => {
+    const text = `${LAT}, ${LON} (Asoke BTS area)`;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast("Copied!");
+    } catch {
+      toast(text);
+    }
+  });
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  }
+
+  safeLoad();
+</script>
+</body>
+</html>
